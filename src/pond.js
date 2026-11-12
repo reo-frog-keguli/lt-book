@@ -129,7 +129,7 @@ function makeWater(blank) {
 // ---------- 底と壁：深緑の大理石 ----------
 function makeTank() {
   const mat = (side) => {
-    const m = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.32, metalness: 0, side })
+    const m = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.32, metalness: 0, side, polygonOffset: true, polygonOffsetFactor: 2, polygonOffsetUnits: 4 })   // 本の厚みの面と重なる所では、本の側を手前に出す
     m.onBeforeCompile = (s) => {
       s.vertexShader = s.vertexShader
         .replace('#include <common>', '#include <common>\nvarying vec3 vLp;')

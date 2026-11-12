@@ -16,7 +16,7 @@ html,body{margin:0;height:100%;overflow:hidden;background:#e6dac6;font-family:"S
 .folio{position:absolute;bottom:34px;left:0;right:0;margin:0;text-align:center;font:italic 500 15px "Cormorant Garamond",serif;opacity:.9}
 .lead{position:absolute;left:64px;right:50px;top:344px}
 .bold{margin:0;font-weight:800;font-size:27px;line-height:1.6;letter-spacing:.04em}
-.cap{margin:22px 0 0;font-size:13px;line-height:2;letter-spacing:.08em;font-weight:600;opacity:1;max-width:330px}
+.cap{margin:22px 0 0;font-size:13px;line-height:2;letter-spacing:.08em;font-weight:600;opacity:1;max-width:346px}
 .bul{position:absolute;left:64px;top:346px;margin:0;padding:0;list-style:none;font-size:18px;line-height:1.5;letter-spacing:.03em;font-weight:500;white-space:nowrap}
 .bul li{position:relative;padding-left:1.2em;margin-bottom:34px}
 .bul li::before{content:"・";position:absolute;left:0}

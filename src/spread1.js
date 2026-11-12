@@ -24,7 +24,7 @@ export function deformTop(x, bulge = 1) {
 // 面の種類: 0 古紙 / 1 水の絵 / 2 夜空 / 3 青写真 / 4 夕暮れの空 / 5 革
 export function makePageMaterials(tHead, tA, tB, tScr) {
   const shared = {
-    tHead: { value: tHead }, tA: { value: tA }, tB: { value: tB }, tScr: { value: tScr },
+    tHead: { value: tHead }, tA: { value: tA }, tB: { value: tB }, tScr: { value: tScr }, tPond: { value: null },
     pHead: { value: 0 }, pA: { value: 0 }, pB: { value: 0 },
     uBulge: { value: 0 }, uTime: { value: 0 }, uSun: { value: 0 },
     uCur: { value: new THREE.Vector2(9, 9) }, uLens: { value: 0 }, uLensInk: { value: 0 },
@@ -39,8 +39,8 @@ export function makePageMaterials(tHead, tA, tB, tScr) {
       if(uDef>.5){ vec3 a=bookDeform(p+vec3(.01,0.,0.)), b=bookDeform(p-vec3(.01,0.,0.)); n=normalize(cross(vec3(0.,0.,1.),normalize(a-b))); p=bookDeform(p); p.y=max(p.y,uFloorY); }
       vN=normalize(mat3(modelMatrix)*n); gl_Position=projectionMatrix*modelViewMatrix*vec4(p,1.); }`
   const fragmentShader = /* glsl */ `
-    uniform sampler2D tHead,tA,tB,tScr;
-    uniform float pHead,pA,pB,uMode,uDef,uKind,uFrontKind,uBackKind,uFlipT,uTime,uInkOn,uHole,uSun,uLens,uLensInk,uDissolve;
+    uniform sampler2D tHead,tA,tB,tScr,tPond;
+    uniform float pHead,pA,pB,uMode,uDef,uKind,uFrontKind,uBackKind,uFlipT,uTime,uInkOn,uHole,uSun,uLens,uLensInk,uDissolve,uMelt;
     uniform vec2 uCur; uniform vec3 uLight; uniform vec4 uSh[8]; uniform float uShL[8];
     varying vec2 vUv; varying vec3 vN;
     ${NOISE}
@@ -110,8 +110,13 @@ export function makePageMaterials(tHead, tA, tB, tScr) {
       return c; }
     void main(){
       vec2 uv=vUv;
-      if(uMode>4.5&&uDissolve>0.&&h21(floor(vUv*vec2(300.,188.)))<uDissolve*1.05) discard;   // 紙片は細かい粒になって消える
+      float burnN=0., burnT=-1.;
+      if(uMode>4.5&&uDissolve>0.){   // 紙片は燃えて無くなる：焼け落ちた所は消え、その手前が焦げ、境目が赤く光る
+        burnN=fbm(vUv*vec2(26.,16.))*.72+fbm(vUv*vec2(90.,56.)+3.)*.28;
+        burnT=uDissolve*1.25-.12;
+        if(burnN<burnT) discard; }
       bool front=gl_FrontFacing;
+      if((uMode<.5||(uMode>3.5&&uMode<4.5))&&uMelt>0.&&fbm(vUv*vec2(14.,9.))<uMelt*1.15) discard;   // 紙が水へ溶ける（ページも、めくる紙も）。穴の奥は本物の水槽
       bool flip=uMode>3.5&&uMode<4.5;
       if(!front&&flip) uv.x=1.-uv.x;       // めくれるページの裏は、次の左ページになる
       float gx=abs(uv.x-.5)*2.;
@@ -132,7 +137,7 @@ export function makePageMaterials(tHead, tA, tB, tScr) {
       gW=vec2(0.); gN=.5;
       if(inkOK&&moving){ gW=vec2(fbm(luv*vec2(48.,30.)),fbm(luv*vec2(48.,30.)+5.3))-.5; gN=fbm(luv*vec2(90.,56.)); }
       vec3 paper=s2l(paperCol(uv,gx));
-      vec3 col;
+      vec3 col; vec3 pic6=vec3(0.);
       if(kind==0){
         col=paper;
         if(uSun>.001&&uMode<.5){
@@ -143,7 +148,6 @@ export function makePageMaterials(tHead, tA, tB, tScr) {
           col+=s2l(vec3(1.,.92,.72))*(exp(-d*1.3)*rays*.24+cloud*exp(-d*2.4)*.2)*uSun*smoothstep(.2,.5,uv.x);
         }
       } else if(kind==1){
-        if(!front){ float d=(uFlipT-.8)/.2; if(d>0.&&inside>.5&&fbm(uv*vec2(14.,9.))<d*1.15) discard; }
         // 本物の水槽へ入れ替わるとき、内側が中央から抜けていく
         if(uHole>.001&&inside>.55&&uHole*1.75-length((uv-.5)*vec2(1.6,1.))-(fbm(uv*vec2(9.,6.))-.5)*.5>0.) discard;
         float ca=net(uv*vec2(8.,5.)+3.,uTime*.5);
@@ -151,6 +155,11 @@ export function makePageMaterials(tHead, tA, tB, tScr) {
       } else if(kind==2) col=s2l(skyCol(uv,gx));
       else if(kind==3) col=s2l(blueCol(luv,gx));
       else if(kind==4) col=s2l(duskCol(uv,gx));
+      else if(kind==6){
+        // 水槽の写し絵。めくり終えたあと、中央から抜けて本物の水槽に替わる（同じ絵なので、切り替わりが見えない）
+        if(uHole>.001&&uHole*1.75-length((uv-.5)*vec2(1.6,1.))-(fbm(uv*vec2(9.,6.))-.5)*.5>0.) discard;
+        pic6=texture2D(tPond,uv).rgb; col=pic6;
+      }
       else col=s2l(leatherCol(uv,gx));
       if(kind!=0) col=mix(paper,col,inside);
       if(inkOK){
@@ -180,6 +189,8 @@ export function makePageMaterials(tHead, tA, tB, tScr) {
       vec3 nn=normalize(vN)*(front?1.:-1.);
       float lam=clamp(dot(nn,uLight),0.,1.);
       float shade=kind==0?mix(.62,1.14,lam):mix(.8,1.07,lam);
+      // 写し絵は、寝ているときは本物と同じ明るさ（陰影なし）。めくれて立っている間だけ、紙としての陰影が付く
+      float lit6=(uMode>3.5&&uMode<4.5)?sin(clamp(uFlipT,0.,1.)*3.14159):0.;
       if(uMode<.5){ shade*=mix(.42,1.,smoothstep(0.,.16,gx)); shade*=1.-.5*exp(-gx*gx*14000.); }   // のどの影と、綴じ目の線
       if(uMode<.5){   // 立体の影：紙の丸みに沿って落ちる。右上からの光なので、左下へ少し伸びる
         for(int i=0;i<8;i++){ vec4 s=uSh[i]; if(s.w<.004) continue;
@@ -190,14 +201,22 @@ export function makePageMaterials(tHead, tA, tB, tScr) {
           shade*=1.-s.w*(1.-smoothstep(.72-.3*far,1.+.2*far,l))*(1.-.35*far); }
       }
       if(!front&&kind==0) shade*=.92;
-      gl_FragColor=vec4(col*shade,1.);
+      if(kind==6) shade=mix(1.,shade,lit6);
+      vec3 outc=col*shade;
+      if(burnT>-.5){
+        float e=burnN-burnT;                                              // 焼け落ちる境目からの距離
+        outc*=1.-.92*(1.-smoothstep(.03,.2,e));                           // 焦げ
+        float fl=.75+.25*sin(uTime*23.+burnN*60.);
+        outc+=(vec3(3.4,.8,.08)*(1.-smoothstep(0.,.085,e))+vec3(2.6,1.7,.5)*(1.-smoothstep(0.,.026,e)))*fl;   // 赤い縁と、白熱した芯
+      }
+      gl_FragColor=vec4(outc,1.);
       #include <tonemapping_fragment>
       #include <colorspace_fragment>
     }`
   // mode 0: 紙面（丸みあり）、4: めくれるページ、5: 破った紙片（今の見開きの絵柄と文字つき）
   const make = (mode, def) => new THREE.ShaderMaterial({
     side: THREE.DoubleSide, vertexShader, fragmentShader,
-    uniforms: { ...shared, uMode: { value: mode }, uDef: { value: def }, uKind: { value: 0 }, uFrontKind: { value: 0 }, uBackKind: { value: 0 }, uFlipT: { value: 0 }, uInkOn: { value: 1 }, uHole: { value: 0 }, uFloorY: { value: -9 }, uDissolve: { value: 0 } },
+    uniforms: { ...shared, uMode: { value: mode }, uDef: { value: def }, uKind: { value: 0 }, uFrontKind: { value: 0 }, uBackKind: { value: 0 }, uFlipT: { value: 0 }, uInkOn: { value: 1 }, uHole: { value: 0 }, uFloorY: { value: -9 }, uDissolve: { value: 0 }, uMelt: { value: 0 } },
   })
   return { shared, pageL: make(0, 1), pageR: make(0, 1), flip: make(4, 0), piece: make(5, 0) }
 }
@@ -437,9 +456,9 @@ export function makeSlash(mat, { nCuts = 12 } = {}) {
       const along = (cx - c.px) * c.dx + (cy - c.py) * c.dy
       return { side: (cx - c.px) * c.nx + (cy - c.py) * c.ny >= 0 ? 1 : -1, tc: c.t0 + Math.min(1, Math.max(0, (along * c.sgn / REACH + 1) / 2)) * c.dur, slip: rand(-0.012, 0.012), tw: rand(-0.035, 0.035) }
     })
-    pieces.push({ holder, mesh, rel, home: holder.position.clone(), dr: new THREE.Vector2(rand(-1, 1), rand(-1, 1)), spin: rand(-0.5, 0.5), tilt: new THREE.Vector2(rand(-0.3, 0.3), rand(-0.3, 0.3)) })
+    pieces.push({ holder, mesh, rel, home: holder.position.clone(), dr: new THREE.Vector2(rand(-1, 1), rand(-1, 1)), spin: rand(-0.5, 0.5), tilt: new THREE.Vector2(rand(-1, 1), rand(-1, 1)), lift: rand(0.4, 1), ph: rand(0, 6.28) })
   }
-  const tEnd = cuts[cuts.length - 1].t0 + cuts[cuts.length - 1].dur, DRIFT = 0.55, HOLD = 0.4, FADE = 0.9
+  const tEnd = cuts[cuts.length - 1].t0 + cuts[cuts.length - 1].dur, DRIFT = 0.8, HOLD = 0.35, FADE = 1.5
   const DUR = tEnd + DRIFT + HOLD + FADE
   const update = (t) => {
     const d0 = Math.min(1, Math.max(0, (t - tEnd) / DRIFT)), d = 1 - Math.pow(1 - d0, 3)
@@ -453,8 +472,11 @@ export function makeSlash(mat, { nCuts = 12 } = {}) {
         rz += r.tw * e; n++
       }
       ox += p.dr.x * 0.03 * d; oy += p.dr.y * 0.03 * d
-      p.holder.position.set(p.home.x + ox, p.home.y + n * 0.0012 + d * 0.012, p.home.z - oy)
-      p.mesh.rotation.set(p.tilt.x * d * 0.5, p.tilt.y * d * 0.5, rz + p.spin * d * 0.4)
+      // 斬られるたびに少しずつ浮き、傾く。斬り終わると、ゆらゆらと宙に漂う
+      const up = Math.min(n, 6) * 0.016 * p.lift + d * (0.1 + 0.2 * p.lift), sway = Math.sin(t * 2.2 + p.ph)
+      p.holder.position.set(p.home.x + ox, p.home.y + up + sway * 0.012 * d, p.home.z - oy)
+      const tl = Math.min(n, 6) * 0.03 + d * 0.32
+      p.mesh.rotation.set(p.tilt.x * tl + sway * 0.05 * d, p.tilt.y * tl, rz + p.spin * d * 0.4)
     }
     mat.uniforms.uDissolve.value = Math.min(1, Math.max(0, (t - (tEnd + DRIFT + HOLD)) / FADE))
   }

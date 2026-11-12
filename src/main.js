@@ -132,15 +132,44 @@ async function boot() {
   // めくれるページ（1枚を使い回す）
   const sheet = makeFlipPage(mats.flip)
   sheet.mesh.visible = false; sheet.mesh.renderOrder = 6
+  // ---- 水槽の写し絵：本物の水槽を真上から写して、ページに刷る ----
+  const snapRT = new THREE.WebGLRenderTarget(4, 4, { samples: 4, type: THREE.HalfFloatType })
+  u.tPond.value = snapRT.texture
+  const snapCam = new THREE.PerspectiveCamera(30, (BOOK.PW * 2) / BOOK.PH, 0.05, 60)     // 本番の真上視点と同じ高さから、見開きぴったりに写す（底のつやや壁の見え方が本物と揃う）
+  let pondShift = 0
+  /** いまの水槽を、見開きぴったりの絵として写す。warm: 水面を落ち着かせるための空回し回数 */
+  const snapPond = (warm = 0) => {
+    const sz = renderer.getDrawingBufferSize(new THREE.Vector2())
+    if (snapRT.width !== sz.x || snapRT.height !== sz.y) snapRT.setSize(sz.x, sz.y)
+    const keep = { vis: pond.group.visible, hL: uL.uHole.value, hR: uR.uHole.value, kL: uL.uKind.value, kR: uR.uKind.value, sheet: sheet.mesh.visible, hol: !!book.blockL.userData.hollowOn }
+    pond.group.visible = true; sheet.mesh.visible = false
+    uL.uKind.value = 6; uR.uKind.value = 6; uL.uHole.value = 1; uR.uHole.value = 1
+    hollow(true)
+    const c = book.pivot.getWorldPosition(new THREE.Vector3())
+    const hgt = topPose().pos.y - BOOK.H
+    snapCam.fov = THREE.MathUtils.radToDeg(2 * Math.atan(BOOK.PH / 2 / hgt)); snapCam.updateProjectionMatrix()
+    snapCam.position.set(c.x, c.y + hgt, c.z); snapCam.up.set(0, 0, -1); snapCam.lookAt(c.x, c.y, c.z); snapCam.updateMatrixWorld()
+    const pt = time - pondShift
+    for (let i = warm; i > 0; i--) pond.update(1 / 60, pt - i / 60, snapCam)
+    pond.update(0, pt, snapCam)
+    u.tPond.value = blankTex            // 写している最中は、写し先の絵を紙面から外す（自分自身を読みながら描かない）
+    pond.renderUnder(scene, snapCam, [desk, laptop.group])
+    renderer.setRenderTarget(snapRT); renderer.clear(); renderer.render(scene, snapCam); renderer.setRenderTarget(null)
+    u.tPond.value = snapRT.texture
+    pond.group.visible = keep.vis; sheet.mesh.visible = keep.sheet
+    uL.uKind.value = keep.kL; uR.uKind.value = keep.kR; uL.uHole.value = keep.hL; uR.uHole.value = keep.hR
+    if (!keep.hol) hollow(false)
+    return pt
+  }
   const coverPond = (page, on) => { page.renderOrder = on ? 5 : 0; page.material.depthFunc = on ? THREE.AlwaysDepth : THREE.LessEqualDepth }
   book.pivot.add(sheet.mesh)
   /** 右のページを1枚めくる。表と裏の面の種類を渡す。onLand は着地した同じコマの中で呼ぶ（前の左ページが一瞬見えるのを防ぐ） */
-  const flipOne = (dur, frontKind = 0, backKind = 0, onLand, floor = -9) => {
+  const flipOne = (dur, frontKind = 0, backKind = 0, onLand, floor = -9, onStep) => {
     mats.flip.uniforms.uFrontKind.value = frontKind; mats.flip.uniforms.uBackKind.value = backKind
     let landed = false
     return tw(dur, (k) => {
       if (k >= 1) { if (!landed) { landed = true; onLand?.() } sheet.mesh.visible = false; return }
-      sheet.mesh.visible = true; sheet.update(k, 0.006, u.uBulge.value, floor)
+      sheet.mesh.visible = true; sheet.update(k, 0.006, u.uBulge.value, floor); onStep?.(k)
     }, { e: ease.io3 })
   }
   /** 次の見開きへ：右ページを次の絵柄に替えてめくり、着地の瞬間に左ページと文字を入れ替える */
@@ -235,6 +264,7 @@ async function boot() {
   const none = new THREE.MeshBasicMaterial({ visible: false })
   const hollow = (on, which = [book.blockL, book.blockR]) => {       // 水槽のあいだ、本の厚みの上面と内側の面を消す（片側だけも可）
     for (const b of which) {
+      b.userData.hollowOn = on
       if (on) { b.userData.full ??= b.material; b.material = b.userData.full.map((m, i) => (i === 2 || i === (b === book.blockL ? 0 : 1) ? none : m)) }
       else if (b.userData.full) b.material = b.userData.full
     }
@@ -302,23 +332,22 @@ async function boot() {
       scribble.clear(); scrTex.needsUpdate = true
       uL.uInkOn.value = 1
       await wait(0.2)
-      // めくる前に本物の水槽を用意し、右ページを抜いておく。めくっている最中から、紙の下にもう水槽が見える
-      pond.group.visible = true
+      // 次の見開き（水槽）の絵を、先にページへ刷っておく。水槽そのものは、まだ動かさない
       pond.robot.rig.scale.setScalar(0.001)
       pond.pads.scale.y = 0.001; pond.pads.position.y = -0.06
-      for (let i = 0; i < 12; i++) pond.update(1 / 60, time + i / 60, camera)
-      hollow(true, [book.blockR])           // 左側は、紙がめくり終わる瞬間まで本の厚みを残す
-      uR.uKind.value = 1; uR.uInkOn.value = 0; uR.uHole.value = 1
-      uL.uFloorY.value = 0.004; coverPond(book.pageL, true)
-      // 着地した同じコマで、左ページも水槽に替わる
-      await flipOne(1.7, 0, 1, () => {
-        u.tHead.value = blankTex; u.tA.value = blankTex; u.tB.value = blankTex
-        u.pHead.value = 0; u.pA.value = 0; u.pB.value = 0
-        uL.uKind.value = 1; uR.uInkOn.value = 1; uL.uHole.value = 1; uL.uFloorY.value = -9; coverPond(book.pageL, false); hollow(true)
-        pond.sim.drop(-0.6, 0, 0.1, 0.14)
-      }, 0.01)
-      tw(1.1, (k) => { pond.pads.scale.y = Math.max(0.001, k); pond.pads.position.y = lerp(-0.06, 0, Math.min(1, k * 4)) }, { delay: 0.3, e: ease.o5 })
-      await tw(0.9, (k) => pond.robot.rig.scale.setScalar(Math.max(0.001, k)), { delay: 0.5, e: ease.o5 })
+      pondShift = 0
+      const snapT = snapPond(12)
+      // 他の見開きと同じ、ふつうの1枚めくり。めくる紙の裏と、その下の右ページが、水槽の見開き
+      await turnTo(0, 6, [], 1.8)
+      // 水槽ページが一番上に来た。ここから本物の水槽が動き出す（写した瞬間の続きから）
+      pondShift = time - snapT
+      pond.group.visible = true; hollow(true)
+      uL.uFloorY.value = 0.004; uR.uFloorY.value = 0.004; coverPond(book.pageL, true); coverPond(book.pageR, true)
+      await tw(0.55, (k) => { uL.uHole.value = k; uR.uHole.value = k }, { e: ease.io2 })
+      uL.uFloorY.value = -9; uR.uFloorY.value = -9; coverPond(book.pageL, false); coverPond(book.pageR, false)
+      pond.sim.drop(0, 0, 0.1, 0.14)
+      tw(1.1, (k) => { pond.pads.scale.y = Math.max(0.001, k); pond.pads.position.y = lerp(-0.06, 0, Math.min(1, k * 4)) }, { delay: 0.1, e: ease.o5 })
+      await tw(0.9, (k) => pond.robot.rig.scale.setScalar(Math.max(0.001, k)), { delay: 0.3, e: ease.o5 })
     },
     // 5: 「生成する」→ 暗号化して消え →「自律的な実行」。ロボットが画面中央を向いて、文字を指さす
     async () => {
@@ -343,15 +372,12 @@ async function boot() {
     async () => {
       tw(0.5, (k) => { wu.uFade.value = 1 - k }, { e: ease.io2 })
       await tw(0.6, (k) => { pond.pads.scale.y = Math.max(0.001, 1 - k); pond.pads.position.y = -0.06 * k; pond.robot.rig.scale.setScalar(Math.max(0.001, 1 - k)) }, { e: ease.io2 })
-      // 右ページは、めくる紙の下でもう夜空。左は着地の瞬間まで本物の水槽のまま
-      uR.uHole.value = 0; uR.uKind.value = 2; uR.uInkOn.value = 0; uR.uFloorY.value = 0.004; coverPond(book.pageR, true); hollow(false, [book.blockR])
-      await flipOne(1.8, 1, 2, () => {
-        u.tHead.value = tS3[0] ?? blankTex; u.tA.value = tS3[1] ?? blankTex; u.tB.value = tS3[2] ?? blankTex
-        u.pHead.value = 0; u.pA.value = 0; u.pB.value = 0
-        uL.uKind.value = 2; uL.uHole.value = 0; uR.uInkOn.value = 1; uR.uFloorY.value = -9; coverPond(book.pageR, false)
-        pond.group.visible = false; hollow(false); pond.robot.rest()
-        wu.tA.value = blankTex; wu.uFade.value = 1
-      }, 0.01)
+      // 水槽を止めて、いまの姿をページの絵に戻す（同じ絵なので切り替わりは見えない）。そのあと、ふつうに1枚めくる
+      snapPond()
+      uL.uKind.value = 6; uR.uKind.value = 6; uL.uHole.value = 0; uR.uHole.value = 0
+      pond.group.visible = false; hollow(false); pond.robot.rest()
+      wu.tA.value = blankTex; wu.uFade.value = 1
+      await turnTo(6, 2, tS3, 1.8)
       sky.group.visible = true; sky.setMeteors(true)
       tw(1.8, (k) => sky.setFade(k), { e: ease.o3 })
       await inkIn('pHead', 1.7, 0.35)
@@ -538,13 +564,14 @@ async function boot() {
   setCam(screenPose())
   resize()
   const clock = new THREE.Clock()
+  let timeScale = 1          // 検証用：スローで見る
   const fps = { n: 0, t: 0, worst: 0, last: null }, hitches = []
   renderer.shadowMap.autoUpdate = false
   const ray = new THREE.Raycaster(), shP = new THREE.Vector3(), shS = new THREE.Vector3()
   const upT = new THREE.Vector3(), fwd = new THREE.Vector3(), right = new THREE.Vector3(), off = new THREE.Vector3(), tg = new THREE.Vector3()
   function frame() {
     requestAnimationFrame(frame)
-    const raw = clock.getDelta(), dt = Math.min(raw, 0.05)
+    const raw = clock.getDelta(), dt = Math.min(raw, 0.05) * timeScale
     time += dt
     u.uTime.value = time
     if (raw > 0.1) hitches.push([step, +time.toFixed(1), +(raw * 1000).toFixed(0)])
@@ -608,7 +635,7 @@ async function boot() {
         liveFrames--
         if (drawLive(liveLayer)) { liveCtx.clearRect(0, 0, SW, SH); liveCtx.drawImage(stageCanvas, 0, 0, SW, SH); liveTex.needsUpdate = true }
       }
-      pond.update(dt, time, camera)
+      pond.update(dt, time - pondShift, camera)
       pond.renderUnder(scene, camera, [desk, laptop.group])
       renderer.shadowMap.needsUpdate = false
     }
@@ -640,7 +667,7 @@ async function boot() {
 
   // 検証用：?step=N でその場面まで飛ぶ。?mx=&my=&zoom= でカメラを固定
   window.__lt = {
-    advance, flush: flushTweens, fps: () => fps.last, hitches: () => hitches, state: () => ({ step, busy }),
+    advance, flush: flushTweens, fps: () => fps.last, pic(on) { if (on) { snapPond(); uL.uKind.value = 6; uR.uKind.value = 6; uL.uHole.value = 0; uR.uHole.value = 0; coverPond(book.pageL, true); coverPond(book.pageR, true) } else { uL.uHole.value = 1; uR.uHole.value = 1; coverPond(book.pageL, false); coverPond(book.pageR, false) } }, slow(v) { timeScale = v }, hitches: () => hitches, state: () => ({ step, busy }),
     async jump(n) { while (step < n) { const p = advance(); await flushTweens(); await p } },
     look(x, y, z = 1) { mouse.set(x, y); camMouse.set(x, y); zoom = z },
     cursor(x, y) { mouse.set(x, y) },
