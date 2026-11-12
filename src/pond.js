@@ -3,7 +3,9 @@ import * as THREE from 'three'
 import { NOISE, CAUSTIC, rand, lerp, BOOK, LDIR } from './util.js'
 
 const INSET = 0.004                              // 紙の余白（水槽はその内側）
-export const TW = BOOK.PW * 2 - INSET * 2, TH = BOOK.PH - INSET * 2
+// 開いた本の紙面は、丸みに合わせて左右へ 0.05 ずつ縮んでいる（spread1.js の bookDeform）。水槽もその内側に収める
+export const PAGE_HW = BOOK.PW - 0.05
+export const TW = PAGE_HW * 2 - INSET * 2, TH = BOOK.PH - INSET * 2
 const FLOOR_Y = -0.2, WATER_Y = -0.02           // ページ面(0)からの高さ
 const SIM_W = 400, SIM_H = 250
 
@@ -102,7 +104,7 @@ function makeWater(blank) {
         float foam=tr*(.5+.5*vn(vUv*vec2(300.,190.)+uTime*.8));
         col=mix(col,s2l(vec3(.82,.94,.88)),clamp(foam*.55,0.,.6));
         // 文字：水面に浮き、底に影を落とす
-        vec2 tuv=vec2(.5)+(vUv-.5)*vec2(${(TW / (BOOK.PW * 2)).toFixed(4)},${(TH / BOOK.PH).toFixed(4)})+n2*.024;   // 文字は見開き全体の座標で描かれている
+        vec2 tuv=vec2(.5)+(vUv-.5)*vec2(${(TW / (PAGE_HW * 2)).toFixed(4)},${(TH / BOOK.PH).toFixed(4)})+n2*.024;   // 文字は見開き全体の座標で描かれている
         float sh=txt(tuv+vec2(.006,.014)+n2*.03,3.2).a;
         col*=1.-.5*sh*uFade;
         vec4 t=txt(tuv,0.); float glow=txt(tuv,4.5).a;

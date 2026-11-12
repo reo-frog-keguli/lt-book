@@ -135,7 +135,7 @@ async function boot() {
   // ---- 水槽の写し絵：本物の水槽を真上から写して、ページに刷る ----
   const snapRT = new THREE.WebGLRenderTarget(4, 4, { samples: 4, type: THREE.HalfFloatType })
   u.tPond.value = snapRT.texture
-  const snapCam = new THREE.PerspectiveCamera(30, (BOOK.PW * 2) / BOOK.PH, 0.05, 60)     // 本番の真上視点と同じ高さから、見開きぴったりに写す（底のつやや壁の見え方が本物と揃う）
+  const snapCam = new THREE.PerspectiveCamera(30, ((BOOK.PW - 0.05) * 2) / BOOK.PH, 0.05, 60)     // 本番の真上視点と同じ高さから、見開きぴったりに写す（底のつやや壁の見え方が本物と揃う）
   let pondShift = 0
   /** いまの水槽を、見開きぴったりの絵として写す。warm: 水面を落ち着かせるための空回し回数 */
   const snapPond = (warm = 0) => {
