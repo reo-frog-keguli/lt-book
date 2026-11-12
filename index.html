@@ -1,0 +1,211 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>無駄を生まないAI活用法</title>
+</head>
+<body>
+<!-- 取り込み用の舞台（WebGLの下に置く。画面外や透明にすると絵が来ない） -->
+<canvas id="stage" content="drawable" aria-hidden="true">
+  <div class="layer" id="L_head" drawable>
+    <div class="pg left">
+      <p class="kicker"><span>Lightning Talk</span><span>Chapter No. 1</span></p>
+      <h2 class="title">Today's<br><em>Contents</em></h2>
+      <p class="jp">今日の内容</p>
+      <p class="folio">1</p>
+    </div>
+    <div class="pg right"><p class="folio">2</p></div>
+  </div>
+  <div class="layer" id="L_a" drawable>
+    <div class="pg left"><div class="lead">
+      <p class="bold">「生成」ではなく、<br>「自律性」の話をします。</p>
+      <p class="cap">今回は「生成」の観点ではなく、「自律性」が生み出す価値にフォーカスします。</p>
+    </div></div>
+  </div>
+  <div class="layer" id="L_b" drawable>
+    <div class="pg left"><ul class="bul" id="bul">
+      <li><span>こういう文章の生成の仕方があります</span></li>
+      <li><span>こういう画像を生成できます</span></li>
+      <li><span>この言語でこういうプログラムが書けます</span></li>
+    </ul></div>
+  </div>
+  <div class="layer" id="L_s3h" drawable>
+    <div class="pg left">
+      <p class="kicker"><span>The Basics</span><span>Chapter No. 2</span></p>
+      <h2 class="title">Own<br><em>Rules</em></h2>
+      <p class="jp">独自のルールを持たせる</p>
+      <p class="cap s3cap">細かな禁止事項ではなく、どんな使い方でも必要になる「汎用的な意識」を、最初に渡しておく。</p>
+      <p class="folio">3</p>
+    </div>
+    <div class="pg right"><p class="folio">4</p></div>
+  </div>
+  <div class="layer" id="L_s3a" drawable>
+    <div class="lab" style="left:716px;top:292px"><b>AGENTS.md ／ CLAUDE.md</b><span>AIがセッションの最初に読む、共通の指示</span></div>
+  </div>
+  <div class="layer" id="L_s3b" drawable>
+    <div class="lab" style="left:724px;top:520px"><b>できないことは、割り切って伝える</b><span>そのうえで代替案まで提案する</span></div>
+    <div class="lab" style="left:222px;top:520px"><b>重要な順に、質問する</b><span>未確定の要素が多いときは、先に聞く</span></div>
+  </div>
+  <div class="layer" id="L_s4h" drawable>
+    <div class="pg left">
+      <p class="kicker"><span>The Basics</span><span>Chapter No. 3</span></p>
+      <h2 class="title">In your<br><em>Words</em></h2>
+      <p class="jp">言語化の質を上げる</p>
+      <p class="cap s3cap">AIは、考えをすべて読み取るエスパーにはなれない。どこまで自分の言葉にできるかで、出てくるものが変わる。</p>
+      <p class="folio">5</p>
+    </div>
+    <div class="pg right"><p class="folio">6</p></div>
+  </div>
+  <div class="layer" id="L_s4a" drawable>
+    <div class="vague">「いい感じのサイトを作って」</div>
+  </div>
+  <div class="layer" id="L_s4b" drawable>
+    <ul class="spec">
+      <li><b>機能</b>何を押すと、どう動くか</li>
+      <li><b>役割</b>このページは何のためか</li>
+      <li><b>文字</b>タイポとフォントの指定</li>
+      <li><b>配置</b>レイアウトの参考リンク</li>
+      <li><b>部品</b>UIはこのMCPから</li>
+      <li><b>目標</b>このページのような感じ</li>
+    </ul>
+  </div>
+  <div class="layer" id="L_s4c" drawable>
+    <p class="claim">1から100は、AIと作れる。<br>0から1は、自分の言葉で。</p>
+  </div>
+  <div class="layer" id="L_s5h" drawable>
+    <div class="pg left">
+      <p class="kicker"><span>The Basics</span><span>Chapter No. 4</span></p>
+      <h2 class="title">Build the<br><em>Process</em></h2>
+      <p class="jp tight">答えを求めるのではなく、過程を築く</p>
+      <p class="cap s3cap">「これやって」「これ作って」で完成形を一度に求めず、段階を踏んで、AIと一緒に進める。</p>
+      <p class="folio">7</p>
+    </div>
+    <div class="pg right"><p class="folio">8</p></div>
+  </div>
+  <div class="layer" id="L_s5a" drawable>
+    <div class="oneshot"><b>「これ作って」</b><span>最初から完成形を求めると、どこでずれたのかが分からない</span></div>
+  </div>
+  <div class="layer" id="L_s5b" drawable>
+    <ol class="stepsList">
+      <li><i style="background:#fff"></i><b>1</b>縦切りの試作</li>
+      <li><i style="background:#fff"></i><b>2</b>MVPの作成</li>
+      <li><i style="background:#fff"></i><b>3</b>詳細の実装</li>
+      <li><i style="background:#fff"></i><b>4</b>品質ループ</li>
+    </ol>
+  </div>
+  <div class="layer" id="L_s5c" drawable>
+    <p class="claim">AIが直し、人が確かめる。<br>その往復が、品質になる。</p>
+  </div>
+  <div class="layer" id="L_s6h" drawable>
+    <div class="pg left">
+      <p class="kicker"><span>The Basics</span><span>Chapter No. 5</span></p>
+      <h2 class="title">Connect<br><em>Outward</em></h2>
+      <p class="jp">外側を繋ぐ</p>
+      <p class="cap s3cap">汎用AIだけで動かすのではなく、スキル・プラグイン・MCPで外の道具とつなぎ、役割を分けて任せる。</p>
+    </div>
+    <div class="pg right"><p class="folio">10</p></div>
+  </div>
+  <div class="layer" id="L_s6a" drawable>
+    <div class="lab big" style="left:570px;top:196px"><b>Skill</b><span>手順をまとめて、再利用する</span></div>
+    <div class="lab big" style="left:840px;top:196px"><b>MCP</b><span>外のツール・資料につなぐ</span></div>
+  </div>
+  <div class="layer" id="L_s6b" drawable>
+    <div class="lab big" style="left:840px;top:452px"><b>Plugin</b><span>機能をまとめて追加する</span></div>
+    <div class="lab big" style="left:570px;top:452px"><b>Subagent</b><span>役割を分けて任せる</span></div>
+  </div>
+  <div class="layer" id="L_s6c" drawable>
+    <p class="claim" style="top:452px">AIはひとりじゃない。<br>道具と役割を、つなぐ。</p>
+  </div>
+  <div class="layer" id="L_s7h" drawable>
+    <div class="pg left">
+      <p class="kicker"><span>My Favorites</span><span>Chapter No. 6</span></p>
+      <h2 class="title">Two<br><em>Prompts</em></h2>
+      <p class="jp">おすすめのプロンプト</p>
+      <p class="cap s3cap">細かく言葉にしても、頭の中の理想は伝えきれない。だから、すり合わせるための言葉を2つだけ持っておく。</p>
+      <p class="folio">11</p>
+    </div>
+    <div class="pg right"><p class="folio">12</p></div>
+  </div>
+  <div class="layer" id="L_s7a" drawable>
+    <div class="letter" id="letter0">
+      <p class="lh">Prompt No. 1</p>
+      <span class="hw s">作りはじめる前に、</span>
+      <span class="hw b">「私に質問を</span>
+      <span class="hw b">　してください」</span>
+      <span class="hw s">足りないところは、対話で埋める。</span>
+    </div>
+    <div class="letter" id="letter1">
+      <p class="lh">Prompt No. 2</p>
+      <span class="hw s">出てきたものを見て、</span>
+      <span class="hw b">「〇〇の方が</span>
+      <span class="hw b">　良いです」</span>
+      <span class="hw s">ゴールの基準を、少しずつ渡す。</span>
+    </div>
+  </div>
+  <div class="layer" id="L_s8h" drawable>
+    <div class="pg left">
+      <p class="kicker"><span>My Goal</span><span>Last Chapter</span></p>
+      <h2 class="title">My<br><em>Goal</em></h2>
+      <p class="jp">自分の目標</p>
+      <p class="cap s3cap">AIで何かを創り、実行するハードルは、どんどん下がってきている。</p>
+      <p class="folio">13</p>
+    </div>
+    <div class="pg right"><p class="folio">14</p></div>
+  </div>
+  <div class="layer" id="L_s8a" drawable>
+    <p class="goal">知識を、形にする。<br>その過程ごと、AIと共に<br>「情報」として積み重ねていく。</p>
+  </div>
+  <div class="layer center" id="L_live" drawable><div class="big" id="liveText"></div></div>
+  <div class="layer center" id="L_p3" drawable><div class="big mid">専門知識<span class="ar">→</span>プロンプト</div></div>
+  <div class="layer center" id="L_p4" drawable><div class="flow">
+    <div>調達<span class="ar">→</span>要件定義<span class="ar">→</span>設計<span class="ar">→</span>実装</div>
+    <div class="second">検証<span class="ar">→</span>品質ループ<span class="ar">→</span>保守</div>
+  </div></div>
+</canvas>
+
+<div id="gl"></div>
+
+<div id="hero">
+  <p class="h-eyebrow">Lightning Talk</p>
+  <h1><span>無駄を生まない</span><span>AI活用法</span></h1>
+  <p class="h-sub">自律的に動くAIと、手戻りを減らすコツ</p>
+  <p class="h-hint">Space — 本を開く</p>
+</div>
+<div id="hud"></div>
+<div id="err"></div>
+
+<!-- 冒頭のパワポ風画面（本物のHTML。これをそのままPCの画面に貼る） -->
+<canvas id="pptHost" content="drawable">
+  <div id="ppt" drawable>
+    <div class="p-title"><span class="p-ico">▣ ↶ ↻ ▾</span><span class="p-name">LT_発表資料.pptx - PowerPoint</span><span class="p-search">🔍 検索</span><span class="p-win">— ▢ ✕</span></div>
+    <div class="p-tabs"><span>ファイル</span><span class="on">ホーム</span><span>挿入</span><span>デザイン</span><span>画面切り替え</span><span>アニメーション</span><span>スライド ショー</span><span>校閲</span><span>表示</span><span>ヘルプ</span><span class="share">共有</span></div>
+    <div class="p-ribbon">
+      <div class="grp"><div class="bigbtn">📋<small>貼り付け</small></div><label>クリップボード</label></div>
+      <div class="grp"><div class="bigbtn">▤<small>新しい<br>スライド</small></div><div class="col"><s>レイアウト ▾</s><s>リセット</s><s>セクション ▾</s></div><label>スライド</label></div>
+      <div class="grp wide"><div class="row"><u class="in w1"></u><u class="in w2"></u><s>A˄</s><s>A˅</s></div><div class="row"><s><b>B</b></s><s><i>I</i></s><s>U</s><s>S</s><s>abc</s><s>AV</s><s>Aa</s><s>A</s></div><label>フォント</label></div>
+      <div class="grp wide"><div class="row"><s>☰</s><s>☷</s><s>⇤</s><s>⇥</s><s>↕</s></div><div class="row"><s>≡</s><s>≡</s><s>≡</s><s>≣</s><s>▥</s></div><label>段落</label></div>
+      <div class="grp wide"><div class="shapes">▭ ╲ ╱ □ ○ △ ⌐ ⇨ ⇩ ◇ ☆ { }</div><label>図形描画</label></div>
+      <div class="grp"><div class="col"><s>🔍 検索</s><s>置換 ▾</s><s>選択 ▾</s></div><label>編集</label></div>
+    </div>
+    <div class="p-main">
+      <div class="p-rail">
+        <div class="th on"><em>1</em><div><b></b><i></i></div></div>
+        <div class="th"><em>2</em><div></div></div>
+        <div class="th"><em>3</em><div><b></b></div></div>
+        <div class="th"><em>4</em><div></div></div>
+        <div class="th"><em>5</em><div class="dk"></div></div>
+        <div class="th"><em>6</em><div class="dk"></div></div>
+      </div>
+      <div class="p-canvas"><div class="slide">
+        <div class="ln a"></div>
+        <div class="st"><h3>無駄を生まないAI活用法</h3><p>- Lightning Talk -</p></div>
+        <div class="ln b"></div>
+      </div></div>
+    </div>
+    <div class="p-status"><span>スライド 1/12</span><span>日本語</span><span class="r">ノート　コメント　▣ ▦ ▤　— ────●─── +　63%</span></div>
+  </div>
+</canvas>
+<script type="module" src="/src/main.js"></script>
+</body>
+</html>

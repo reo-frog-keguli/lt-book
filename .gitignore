@@ -1,0 +1,8 @@
+node_modules/
+dist/
+# 制作中の確認用（公開しない）
+shots/
+_unused/
+viewer.html
+cdesignls.design.md
+.claude/

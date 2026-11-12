@@ -1,0 +1,1 @@
+{"name":"lt-book","private":true,"type":"module","scripts":{"dev":"vite --port 5183 --strictPort","build":"vite build"},"dependencies":{"@fontsource/cormorant-garamond":"^5.3.0","@fontsource/shippori-mincho":"^5.3.0","@fontsource/zen-kurenaido":"^5.3.1","three":"^0.187.0"},"devDependencies":{"vite":"^8.3.8"}}
